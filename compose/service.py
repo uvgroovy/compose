@@ -9,6 +9,7 @@ from operator import attrgetter
 import six
 from docker.errors import APIError
 from docker.utils import create_host_config, LogConfig
+from docker.utils.ports import build_port_bindings
 
 from .config import DOCKER_CONFIG_KEYS, merge_environment
 from .container import Container, get_container_name
@@ -652,34 +653,6 @@ def parse_repository_tag(s):
 def build_volume_binding(volume_spec):
     internal = {'bind': volume_spec.internal, 'ro': volume_spec.mode == 'ro'}
     return volume_spec.external, internal
-
-
-def build_port_bindings(ports):
-    port_bindings = {}
-    for port in ports:
-        internal_port, external = split_port(port)
-        if internal_port in port_bindings:
-            port_bindings[internal_port].append(external)
-        else:
-            port_bindings[internal_port] = [external]
-    return port_bindings
-
-
-def split_port(port):
-    parts = str(port).split(':')
-    if not 1 <= len(parts) <= 3:
-        raise ConfigError('Invalid port "%s", should be '
-                          '[[remote_ip:]remote_port:]port[/protocol]' % port)
-
-    if len(parts) == 1:
-        internal_port, = parts
-        return internal_port, None
-    if len(parts) == 2:
-        external_port, internal_port = parts
-        return internal_port, external_port
-
-    external_ip, external_port, internal_port = parts
-    return internal_port, (external_ip, external_port or None)
 
 
 def build_extra_hosts(extra_hosts_config):
